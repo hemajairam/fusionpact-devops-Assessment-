@@ -1,0 +1,35 @@
+version: "3.8"
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+    container_name: fusionpact_frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    networks:
+      - fusion-net
+
+  backend:
+    build:
+      context: ./backend
+    container_name: fusionpact_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist backend user data on the host so users.json survives restarts
+      - ./backend/app/data:/app/app/data
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - fusion-net
+
+volumes:
+  backend-data: {}   # ✅ this fixes the error
+
+networks:
+  fusion-net:
+    driver: bridge
+
