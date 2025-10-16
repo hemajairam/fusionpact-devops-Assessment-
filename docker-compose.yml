@@ -19,17 +19,52 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      # Persist backend user data on the host so users.json survives restarts
       - ./backend/app/data:/app/app/data
     environment:
       - PYTHONUNBUFFERED=1
     networks:
       - fusion-net
 
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus_new
+    restart: unless-stopped
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - fusion-net
+    depends_on:
+      - backend
+      - node-exporter
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana_new
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    networks:
+      - fusion-net
+    depends_on:
+      - prometheus
+
+  node-exporter:
+    image: prom/node-exporter
+    container_name: node_exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    networks:
+      - fusion-net
+
 volumes:
-  backend-data: {}   # ✅ this fixes the error
+  backend-data: {}   # persists backend data
 
 networks:
   fusion-net:
     driver: bridge
+
+
 
