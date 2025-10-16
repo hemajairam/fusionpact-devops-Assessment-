@@ -1,0 +1,59 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    # ✅ Login to Docker Hub
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    # ✅ Build Backend Image
+    - name: Build Backend Image
+      run: |
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/fusionpact-backend:latest ./backend
+
+    # ✅ Build Frontend Image
+    - name: Build Frontend Image
+      run: |
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/fusionpact-frontend:latest ./frontend
+
+    # ✅ Push Backend Image
+    - name: Push Backend Image
+      run: |
+        docker push ${{ secrets.DOCKER_USERNAME }}/fusionpact-backend:latest
+
+    # ✅ Push Frontend Image
+    - name: Push Frontend Image
+      run: |
+        docker push ${{ secrets.DOCKER_USERNAME }}/fusionpact-frontend:latest
+
+    # ✅ Deploy to EC2
+    - name: SSH into EC2 & Deploy
+      uses: appleboy/ssh-action@v1.2.0
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ubuntu
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          cd fusionpact-devops-Assessment-
+          git pull origin main
+          docker compose pull
+          docker compose up -d --build
+
